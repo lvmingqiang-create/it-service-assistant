@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - IT Service Smart Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white border-b">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h1 class="text-lg font-bold text-gray-800">⚙️ Admin Panel</h1>
+                <span class="text-sm text-gray-400">IT Service Smart Assistant</span>
+            </div>
+            <a href="index.html" class="text-sm text-blue-600 hover:text-blue-800">← Back to Chat</a>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-6">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-5 border">
+                <div class="text-sm text-gray-500">Documents</div>
+                <div class="text-2xl font-bold text-gray-800 mt-1" id="stat-documents">--</div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border">
+                <div class="text-sm text-gray-500">Vectors</div>
+                <div class="text-2xl font-bold text-gray-800 mt-1" id="stat-chunks">--</div>
+            </div>
+            <div class="bg-white rounded-xl p-5 border">
+                <div class="text-sm text-gray-500">Mock Tickets</div>
+                <div class="text-2xl font-bold text-gray-800 mt-1" id="stat-tickets">--</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-xl p-6 border">
+                <h2 class="font-semibold text-gray-800 mb-4">📤 Upload Document</h2>
+                
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors"
+                     id="upload-area">
+                    <div class="text-4xl mb-2">📁</div>
+                    <p class="text-gray-600 mb-2">Drag and drop files here, or click to select</p>
+                    <p class="text-xs text-gray-400 mb-4">Supports PDF, TXT, MD formats, max 10MB</p>
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.txt,.md">
+                    <button onclick="document.getElementById('file-input').click()" 
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">
+                        Select File
+                    </button>
+                </div>
+
+                <div id="upload-status" class="mt-4 hidden">
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        <span id="upload-status-text">Uploading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document List -->
+            <div class="bg-white rounded-xl p-6 border">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-semibold text-gray-800">📋 Document List</h2>
+                    <button onclick="loadDocuments()" class="text-sm text-blue-600 hover:text-blue-800">Refresh</button>
+                </div>
+                
+                <div id="document-list" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div class="text-center text-gray-400 py-8">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tickets Section -->
+        <div class="bg-white rounded-xl p-6 border mt-6">
+            <h2 class="font-semibold text-gray-800 mb-4">🎫 Mock Ticket Data</h2>
+            <div id="ticket-list" class="grid grid-cols-2 gap-4">
+                <div class="text-center text-gray-400 py-4 col-span-2">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="bg-red-50 rounded-xl p-6 border border-red-200 mt-6">
+            <h2 class="font-semibold text-red-800 mb-2">⚠️ Danger Zone</h2>
+            <p class="text-sm text-red-600 mb-3">Clear all vector data from the knowledge base. This action cannot be undone.</p>
+            <button onclick="clearKnowledgeBase()" 
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm">
+                Clear Knowledge Base
+            </button>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

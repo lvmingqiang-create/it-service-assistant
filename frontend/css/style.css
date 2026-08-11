@@ -1,0 +1,105 @@
+/* ============================================================
+ * Custom Styles - IT Service Assistant
+ * Lightweight additions on top of Tailwind CSS
+ * ============================================================ */
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Message bubble animations */
+.message-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Thinking step styles */
+.thinking-step {
+    font-size: 0.875rem;
+    border-left: 3px solid #e5e7eb;
+    padding-left: 12px;
+    margin: 4px 0;
+}
+
+.thinking-step.thought {
+    border-left-color: #f59e0b;
+    color: #92400e;
+}
+
+.thinking-step.action {
+    border-left-color: #3b82f6;
+    color: #1e40af;
+}
+
+.thinking-step.observation {
+    border-left-color: #10b981;
+    color: #065f46;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 0.8rem;
+    background: #f0fdf4;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+/* Source citation styles */
+.source-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    margin-right: 4px;
+}
+
+/* Upload area hover effect */
+#upload-area.drag-over {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+/* Typing indicator */
+.typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6b7280;
+    margin: 0 2px;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
