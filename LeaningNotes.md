@@ -677,6 +677,165 @@ admin.js
 
 =============================================
 =============================================
+如何在现有项目中添加新 Agent
+整体架构
+
+Plain Text
+
+后端 (Python/FastAPI)          前端 (HTML/JS)
+┌─────────────────────┐       ┌─────────────────────┐
+│ 1. Service 层        │       │ 4. API 客户端        │
+│    (业务逻辑)         │◄─────►│    (api.js)          │
+├─────────────────────┤       ├─────────────────────┤
+│ 2. API 层            │       │ 5. Chat 逻辑         │
+│    (路由/端点)        │       │    (chat.js)         │
+├─────────────────────┤       ├─────────────────────┤
+│ 3. 注册路由           │       │ 6. UI 界面           │
+│    (main.py)         │       │    (index.html)      │
+└─────────────────────┘       └─────────────────────┘
+Step 1: 创建 Service 层
+文件位置: backend/app/services/xxx_agent_service.py
+
+核心内容:
+
+
+Python
+
+from langchain_openai import ChatOpenAI
+from langchain.agents import Tool, create_react_agent
+from app.config import settings
+
+class XxxAgentService:
+    def __init__(self):
+        self.llm = self._create_llm()
+        self.tools = self._create_tools()
+        self.agent_executor = self._create_agent()
+    
+    def _create_llm(self):
+        return ChatOpenAI(
+            model=settings.llm_model,          # ← 注意用小写
+            base_url=settings.llm_base_url,    # ← 注意用小写
+            api_key=settings.llm_api_key,      # ← 注意用小写
+            temperature=0.1,
+        )
+    
+    def _create_tools(self):
+        return [
+            Tool(name="tool_name", func=self._tool_func, description="..."),
+        ]
+    
+    def _create_agent(self):
+        prompt = """Your prompt here..."""
+        return create_react_agent(self.llm, self.tools, prompt)
+    
+    def run_query(self, question: str, history: list = None, show_thinking: bool = False):
+        # 执行 Agent 逻辑，返回结果
+        pass
+命名规范: 文件名以 _service.py 结尾，如 operations_agent_service.py
+
+Step 2: 创建 API 层
+文件位置: backend/app/api/xxx_agent.py
+
+核心内容:
+
+
+Python
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from app.services.xxx_agent_service import XxxAgentService
+
+router = APIRouter(tags=["Xxx Agent"])  # ← 不要加 prefix
+
+class XxxAgentRequest(BaseModel):
+    question: str
+    history: list = []
+    show_thinking: bool = False
+
+def get_xxx_agent() -> XxxAgentService:
+    return XxxAgentService()
+
+@router.post("/run")
+async def xxx_agent_run(request: XxxAgentRequest):
+    agent_service = get_xxx_agent()
+    result = agent_service.run_query(
+        question=request.question,
+        history=request.history,
+        show_thinking=request.show_thinking,
+    )
+    return result
+注意: router = APIRouter() 不要加 prefix，prefix 在 main.py 中统一设置
+
+Step 3: 注册路由
+文件位置: backend/app/main.py
+
+添加内容:
+
+
+Python
+
+from app.api import xxx_agent
+
+# 在 app 初始化后添加
+app.include_router(xxx_agent.router, prefix="/api/xxx-agent")
+Step 4: 前端 API 客户端
+文件位置: frontend/js/api.js
+
+添加内容:
+
+
+JavaScript
+
+const XxxAgentAPI = {
+    async run(question, history = [], showThinking = false) {
+        const response = await apiRequest('/api/xxx-agent/run', {
+            method: 'POST',
+            body: JSON.stringify({
+                question,
+                history,
+                show_thinking: showThinking,
+            }),
+        });
+        return response;
+    },
+};
+Step 5: 前端 Chat 逻辑
+文件位置: frontend/js/chat.js
+
+需要添加:
+
+模式元数据 - 在 MODES 对象中添加新模式的标题、图标等
+历史持久化 - 添加 loadXxxHistory(), saveXxxHistory(), clearXxxHistory() 函数
+模式切换 - 在 setMode() 中添加新模式的 history 加载逻辑
+消息发送 - 在 sendMessage() 中添加新模式的 API 调用
+UI 恢复 - 添加 restoreXxxHistoryToUI() 函数
+Step 6: 前端 UI 界面
+文件位置: frontend/index.html
+
+添加侧边栏按钮:
+
+
+HTML
+
+<button id="btn-mode-xxx" onclick="setMode('xxx')" class="...">
+    🔧 Xxx Agent
+</button>
+关键注意事项
+问题	正确做法	错误做法
+Settings 属性名	settings.llm_model (小写)	settings.LLM_MODEL (大写)
+Router prefix	在 main.py 中设置	在 router 文件中设置
+clearChat()	模式切换时不传参	模式切换时调用 clearChat(true)
+Docker 构建	先试 --build，不行再 --no-cache	每次都 --no-cache
+验证清单
+ Service 文件命名以 _service.py 结尾
+ Settings 属性使用小写 (llm_model, llm_base_url, llm_api_key)
+ Router 文件中不加 prefix
+ main.py 中注册路由时添加 prefix="/api/xxx-agent"
+ 前端 API 路径与后端一致 (/api/xxx-agent/run)
+ 前端 MODES 对象包含新模式
+ 前端 setMode() 包含新模式的历史加载逻辑
+ 前端 sendMessage() 包含新模式的 API 调用
+ 侧边栏按钮 onclick="setMode('xxx')" 正确
 
 =============================================
 =============================================

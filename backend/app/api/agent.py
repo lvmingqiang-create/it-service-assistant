@@ -25,12 +25,14 @@ async def agent_run(request: AgentRequest):
     4. Generate final answer
     
     Set show_thinking=true to see the full thought process.
+    Pass history to maintain conversation context.
     """
     agent_service = get_agent_service()
     
     answer, steps, tools_used = agent_service.run_query(
         query=request.query,
         show_thinking=request.show_thinking,
+        history=request.history,
     )
     
     return AgentResponse(

@@ -68,6 +68,7 @@ class AgentRequest(BaseModel):
     """Request body for Agent endpoint."""
     query: str = Field(description="User question or task")
     show_thinking: bool = Field(True, description="Whether to show thinking process")
+    history: Optional[List[Dict[str, str]]] = Field(None, description="Conversation history (last 10 messages)")
 
 
 class AgentResponse(BaseModel):

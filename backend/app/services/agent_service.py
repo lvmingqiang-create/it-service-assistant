@@ -140,6 +140,14 @@ If the user does not provide a ticket number, ask for it first.""",
 Use when the user asks common, repetitive IT questions.
 Input should be question keywords or a short description.""",
             ),
+            # Tool 4: Weather Search
+            Tool(
+                name="weather_search",
+                func=self._tool_weather_search,
+                description="""Use this tool to search for weather information.
+Use when the user asks about weather conditions, forecasts, or related topics.
+Input should be a location name or coordinates.""",
+            ),
         ]
         return tools
 
@@ -303,6 +311,25 @@ If you have further questions, please contact the IT service desk."""
         else:
             return "No matching common questions found. Suggest using knowledge base query for more detailed information."
 
+    def _tool_weather_search(self, location: str) -> str:
+        """
+        Tool: Weather Search
+        
+        Simulates weather search functionality, returns weather conditions.
+        In production, should search from weather API or database.
+        """
+        # Mock weather data
+        weather_data = {
+            "location": location,
+            "temperature": "25°C",
+            "humidity": "60%",
+            "wind_speed": "5 m/s",
+            "cloud_cover": "20%",
+            "weather": "Clear sky",
+        }
+
+        return f"Weather in {location}: {weather_data}"
+
     def _create_agent(self) -> AgentExecutor:
         """
         Create Agent executor
@@ -359,20 +386,31 @@ Question: {input}
 
         return agent_executor
 
-    def run_query(self, query: str, show_thinking: bool = True) -> tuple:
+    def run_query(self, query: str, show_thinking: bool = True, history: Optional[List[Dict[str, str]]] = None) -> tuple:
         """
         Run Agent query
         
         Args:
             query: User question
             show_thinking: Whether to return detailed thinking process
+            history: Conversation history (last 10 messages)
         
         Returns:
             (final_answer, steps, tools_used)
         """
         try:
+            # Build input with conversation history context
+            input_text = query
+            if history and len(history) > 0:
+                # Format history as a conversation context
+                history_context = "\n".join([
+                    f"{'User' if msg.get('role') == 'user' else 'Assistant'}: {msg.get('content', '')}"
+                    for msg in history[-10:]  # Keep only last 10 messages
+                ])
+                input_text = f"Previous conversation:\n{history_context}\n\nCurrent question: {query}"
+
             # Call Agent executor
-            result = self.agent_executor.invoke({"input": query})
+            result = self.agent_executor.invoke({"input": input_text})
 
             # Extract final answer
             final_answer = result.get("output", "Sorry, I cannot answer this question.")

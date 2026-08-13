@@ -96,11 +96,12 @@ const AgentAPI = {
      * Run agent query
      * @param {string} query - User question/task
      * @param {boolean} showThinking - Whether to return thinking process
+     * @param {Array} history - Optional conversation history (last 10 messages)
      */
-    async run(query, showThinking = true) {
+    async run(query, showThinking = true, history = null) {
         return apiRequest('/agent/run', {
             method: 'POST',
-            body: JSON.stringify({ query, show_thinking: showThinking }),
+            body: JSON.stringify({ query, show_thinking: showThinking, history }),
         });
     },
     
@@ -116,6 +117,40 @@ const AgentAPI = {
      */
     async getTickets() {
         return apiRequest('/agent/tickets');
+    },
+};
+
+// ============ Operations Agent API ============
+
+const OperationsAgentAPI = {
+    /**
+     * Run operations agent query
+     * @param {string} query - Operations request
+     * @param {boolean} showThinking - Whether to return thinking process
+     * @param {Array} history - Optional conversation history (last 10 messages)
+     */
+    async run(query, showThinking = true, history = null) {
+        return apiRequest('/operations-agent/run', {
+            method: 'POST',
+            body: JSON.stringify({ query, show_thinking: showThinking, history }),
+        });
+    },
+};
+
+// ============ Multi-Agent API ============
+
+const MultiAgentAPI = {
+    /**
+     * Run the multi-agent workflow
+     * @param {string} query - User's question
+     * @param {boolean} showThinking - Whether to show thinking process
+     * @param {Array} history - Optional conversation history (last 10 messages)
+     */
+    async run(query, showThinking = true, history = null) {
+        return apiRequest('/multi-agent/run', {
+            method: 'POST',
+            body: JSON.stringify({ question: query, show_thinking: showThinking, history }),
+        });
     },
 };
 

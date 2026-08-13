@@ -299,47 +299,78 @@ it-service-assistant/
 1. 修改 `frontend/js/api.js` 中的 `API_BASE` 变量
 2. 或者使用 Nginx 反向代理（Docker Compose 方式已配置好）
 
-### Q: 如何添加新的 Agent 工具？
+---
 
-在 `agent_service.py` 的 `_create_tools()` 方法中添加：
+## 📝 学习记录 - 新增内容
 
-```python
-Tool(
-    name="工具名称",
-    func=self._tool_function_name,  # 对应的执行函数
-    description="工具的详细描述，Agent根据描述决定是否使用",
-),
-```
+> 以下是在学习过程中逐步添加的功能，用 `🆕` 标记。
 
-> **重要：** 工具的 description 非常关键！Agent 就是通过阅读 description 来判断什么时候用这个工具的。描述越清晰准确，Agent使用就越正确。
+### 🆕 新增 1：Operations Agent（运维 Agent）
 
-### Q: 可以用于生产环境吗？
+**背景：** 学习如何添加一个新的独立 Agent
 
-不建议直接用于生产。这是一个教学项目，缺少生产环境必需的：
-- 用户认证和权限管理
-- 数据持久化（目前是本地文件）
-- 性能优化和缓存
-- 监控和告警
-- 安全审计
-- 错误重试和降级策略
+**新增文件：**
+- `backend/app/services/operations_agent_service.py` - 运维 Agent 服务
+- `backend/app/api/operations_agent.py` - 运维 Agent API 端点
 
-但可以作为原型验证和MVP开发的基础，在此基础上逐步完善。
+**新增功能：**
+- 4 个运维工具：系统状态检查、服务管理、日志查询、资源监控
+- 独立的对话历史持久化（localStorage）
+- 前端侧边栏新增 Operations Agent 按钮
+
+**学习要点：**
+- 如何创建一个新的 Agent Service
+- 如何注册新的 API 路由
+- 前端如何支持新的 Agent 模式
 
 ---
 
-## 📖 延伸阅读
+### 🆕 新增 2：Router Agent + LangGraph 多 Agent 编排
 
-- [LangChain 官方文档](https://python.langchain.com/)
-- [Chroma 向量数据库](https://www.trychroma.com/)
-- [FastAPI 官方教程](https://fastapi.tiangolo.com/zh/tutorial/)
-- [ReAct 论文](https://arxiv.org/abs/2210.03629) - Agent 推理模式的起源
+**背景：** 学习多 Agent 协同，用 Router 自动分类问题并路由到对应 Agent
+
+**新增文件：**
+- `backend/app/services/router_agent_service.py` - 路由分类 Agent
+- `backend/app/services/multi_agent_graph.py` - LangGraph 工作流编排
+- `backend/app/api/multi_agent.py` - 多 Agent API 端点
+
+**修改文件：**
+- `backend/app/main.py` - 注册多 Agent 路由
+- `backend/requirements.txt` - 添加 `langgraph` 依赖
+- `frontend/js/api.js` - 添加 MultiAgentAPI 客户端
+- `frontend/js/chat.js` - 添加多 Agent 模式支持
+- `frontend/index.html` - 添加 Multi-Agent 按钮
+
+**新增功能：**
+- Router Agent：自动判断问题类型（service vs operations）
+- LangGraph StateGraph：定义工作流状态和节点流转
+- 条件边：根据 Router 决策动态选择执行路径
+- 前端展示路由决策、置信度和原因
+
+**学习要点：**
+- LangGraph 的 State 管理机制
+- 条件边（Conditional Edges）的使用
+- 多 Agent 间的状态传递和更新
+- LLM 输出格式校验与容错
 
 ---
 
-## 📄 License
+### 🆕 新增 3：对话历史持久化
 
-MIT License - 自由使用、修改、分发。
+**背景：** 实现 Agent 模式下的对话历史保存和恢复
 
----
+**修改文件：**
+- `frontend/js/chat.js` - 添加 localStorage 持久化逻辑
+- `backend/app/services/agent_service.py` - 支持 history 参数
+- `backend/app/api/agent.py` - 接收 history 参数
 
-> 💡 **学习建议：** 不要试图一次把所有代码都看懂。先用起来，有了体感之后，带着具体问题去读代码，效率最高。
+**新增功能：**
+- Agent 和 Operations Agent 模式的对话历史自动保存到 localStorage
+- 刷新页面后自动恢复历史
+- 切换模式时保留各自的历史记录
+- 最多保留最近 10 条对话
+
+**学习要点：**
+- localStorage 的工作原理
+- 前端状态持久化的最佳实践
+- 如何将历史注入到 LLM Prompt 中

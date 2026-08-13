@@ -59,6 +59,8 @@ def ensure_directories():
 from app.api.chat import router as chat_router        # Chat API
 from app.api.rag import router as rag_router          # RAG API
 from app.api.agent import router as agent_router      # Agent API
+from app.api.operations_agent import router as operations_agent_router  # Operations Agent API
+from app.api.multi_agent import router as multi_agent_router  # Multi-Agent API
 from app.api.documents import router as documents_router  # Document Management API
 from app.api.admin import router as admin_router      # Admin API
 
@@ -66,6 +68,8 @@ from app.api.admin import router as admin_router      # Admin API
 app.include_router(chat_router, prefix="/api/chat", tags=["Chat Q&A"])
 app.include_router(rag_router, prefix="/api/rag", tags=["RAG Knowledge Base"])
 app.include_router(agent_router, prefix="/api/agent", tags=["IT Service Agent"])
+app.include_router(operations_agent_router, prefix="/api/operations-agent", tags=["IT Operations Agent"])
+app.include_router(multi_agent_router, prefix="/api/multi-agent", tags=["Multi-Agent"])
 app.include_router(documents_router, prefix="/api/documents", tags=["Document Management"])
 app.include_router(admin_router, prefix="/api/admin", tags=["Admin API"])
 

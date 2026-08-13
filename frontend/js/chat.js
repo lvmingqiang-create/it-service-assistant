@@ -9,9 +9,104 @@
  */
 
 // Application state
-let currentMode = 'chat'; // 'chat' | 'rag' | 'agent'
+let currentMode = 'chat'; // 'chat' | 'rag' | 'agent' | 'ops-agent' | 'multi-agent'
 let conversationHistory = [];
+let agentHistory = []; // Persistent history for Agent mode only (max 10 messages)
+let opsAgentHistory = []; // Persistent history for Operations Agent mode (max 10 messages)
+let multiAgentHistory = []; // Persistent history for Multi-Agent mode (max 10 messages)
 let isLoading = false;
+
+// ============ Agent History Persistence ============
+
+const AGENT_HISTORY_KEY = 'agent_conversation_history';
+const OPS_AGENT_HISTORY_KEY = 'ops_agent_conversation_history';
+const MULTI_AGENT_HISTORY_KEY = 'multi_agent_conversation_history';
+const MAX_AGENT_HISTORY = 10;
+
+function loadAgentHistory() {
+    try {
+        const stored = localStorage.getItem(AGENT_HISTORY_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.warn('Failed to load agent history:', e);
+        return [];
+    }
+}
+
+function saveAgentHistory() {
+    try {
+        const trimmed = agentHistory.slice(-MAX_AGENT_HISTORY);
+        localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+        console.warn('Failed to save agent history:', e);
+    }
+}
+
+function clearAgentHistory() {
+    try {
+        localStorage.removeItem(AGENT_HISTORY_KEY);
+    } catch (e) {
+        console.warn('Failed to clear agent history:', e);
+    }
+}
+
+// ============ Operations Agent History Persistence ============
+
+function loadOpsAgentHistory() {
+    try {
+        const stored = localStorage.getItem(OPS_AGENT_HISTORY_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.warn('Failed to load ops agent history:', e);
+        return [];
+    }
+}
+
+function saveOpsAgentHistory() {
+    try {
+        const trimmed = opsAgentHistory.slice(-MAX_AGENT_HISTORY);
+        localStorage.setItem(OPS_AGENT_HISTORY_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+        console.warn('Failed to save ops agent history:', e);
+    }
+}
+
+function clearOpsAgentHistory() {
+    try {
+        localStorage.removeItem(OPS_AGENT_HISTORY_KEY);
+    } catch (e) {
+        console.warn('Failed to clear ops agent history:', e);
+    }
+}
+
+// ============ Multi-Agent History Persistence ============
+
+function loadMultiAgentHistory() {
+    try {
+        const stored = localStorage.getItem(MULTI_AGENT_HISTORY_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.warn('Failed to load multi-agent history:', e);
+        return [];
+    }
+}
+
+function saveMultiAgentHistory() {
+    try {
+        const trimmed = multiAgentHistory.slice(-MAX_AGENT_HISTORY);
+        localStorage.setItem(MULTI_AGENT_HISTORY_KEY, JSON.stringify(trimmed));
+    } catch (e) {
+        console.warn('Failed to save multi-agent history:', e);
+    }
+}
+
+function clearMultiAgentHistory() {
+    try {
+        localStorage.removeItem(MULTI_AGENT_HISTORY_KEY);
+    } catch (e) {
+        console.warn('Failed to clear multi-agent history:', e);
+    }
+}
 
 // Mode metadata
 const MODES = {
@@ -30,6 +125,16 @@ const MODES = {
         subtitle: 'AI autonomously invokes tools (knowledge base/tickets/FAQ) to solve complex issues',
         icon: '🧠',
     },
+    'ops-agent': {
+        title: 'Operations Agent',
+        subtitle: 'IT operations tasks: system status, service management, logs, resource monitoring',
+        icon: '🔧',
+    },
+    'multi-agent': {
+        title: 'Multi-Agent',
+        subtitle: 'Router Agent classifies and dispatches to Service or Operations Agent',
+        icon: '🌐',
+    },
 };
 
 // ============ Mode Switching ============
@@ -44,23 +149,88 @@ function setMode(mode) {
     document.getElementById('current-mode').textContent = modeInfo.title;
     
     // Update sidebar buttons
-    ['chat', 'rag', 'agent'].forEach(m => {
+    ['chat', 'rag', 'agent', 'ops-agent', 'multi-agent'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
-        if (m === mode) {
-            btn.classList.add('bg-gray-700');
-            btn.classList.remove('hover:bg-gray-700');
-        } else {
-            btn.classList.remove('bg-gray-700');
-            btn.classList.add('hover:bg-gray-700');
+        if (btn) {
+            if (m === mode) {
+                btn.classList.add('bg-gray-700');
+                btn.classList.remove('hover:bg-gray-700');
+            } else {
+                btn.classList.remove('bg-gray-700');
+                btn.classList.add('hover:bg-gray-700');
+            }
         }
     });
     
-    // Show/hide thinking toggle
+    // Show/hide thinking toggle (show for all agent modes)
     const thinkingToggle = document.getElementById('thinking-toggle-container');
-    thinkingToggle.style.display = mode === 'agent' ? 'flex' : 'none';
+    thinkingToggle.style.display = (mode === 'agent' || mode === 'ops-agent' || mode === 'multi-agent') ? 'flex' : 'none';
     
-    // Clear chat history when switching modes
+    // Load history BEFORE clearing chat
+    if (mode === 'agent') {
+        agentHistory = loadAgentHistory();
+    } else if (mode === 'ops-agent') {
+        opsAgentHistory = loadOpsAgentHistory();
+    } else if (mode === 'multi-agent') {
+        multiAgentHistory = loadMultiAgentHistory();
+    }
+    
+    // Clear visual chat history when switching modes
     clearChat();
+    
+    // Restore history messages to UI if in agent mode
+    if (mode === 'agent' && agentHistory.length > 0) {
+        restoreAgentHistoryToUI();
+    } else if (mode === 'ops-agent' && opsAgentHistory.length > 0) {
+        restoreOpsAgentHistoryToUI();
+    } else if (mode === 'multi-agent' && multiAgentHistory.length > 0) {
+        restoreMultiAgentHistoryToUI();
+    }
+}
+
+function restoreAgentHistoryToUI() {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    
+    agentHistory.forEach(msg => {
+        if (msg.role === 'user') {
+            addUserMessage(msg.content);
+        } else if (msg.role === 'assistant') {
+            addAssistantMessage(msg.content);
+        }
+    });
+    
+    scrollToBottom();
+}
+
+function restoreOpsAgentHistoryToUI() {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    
+    opsAgentHistory.forEach(msg => {
+        if (msg.role === 'user') {
+            addUserMessage(msg.content);
+        } else if (msg.role === 'assistant') {
+            addAssistantMessage(msg.content);
+        }
+    });
+    
+    scrollToBottom();
+}
+
+function restoreMultiAgentHistoryToUI() {
+    const messagesDiv = document.getElementById('messages');
+    messagesDiv.innerHTML = '';
+    
+    multiAgentHistory.forEach(msg => {
+        if (msg.role === 'user') {
+            addUserMessage(msg.content);
+        } else if (msg.role === 'assistant') {
+            addAssistantMessage(msg.content);
+        }
+    });
+    
+    scrollToBottom();
 }
 
 // ============ Message Rendering ============
@@ -214,7 +384,14 @@ async function sendMessage() {
         } else if (currentMode === 'agent') {
             // Agent mode
             const showThinking = document.getElementById('show-thinking').checked;
-            response = await AgentAPI.run(content, showThinking);
+            
+            // Add to agent history
+            agentHistory.push({ role: 'user', content });
+            saveAgentHistory();
+            
+            // Pass last 10 messages as history
+            const historyToSend = agentHistory.slice(-MAX_AGENT_HISTORY);
+            response = await AgentAPI.run(content, showThinking, historyToSend);
             
             removeLoadingMessage();
             
@@ -225,6 +402,10 @@ async function sendMessage() {
             
             // Show final answer
             addAssistantMessage(response.answer);
+            
+            // Add assistant response to agent history
+            agentHistory.push({ role: 'assistant', content: response.answer });
+            saveAgentHistory();
             
             // Show tools used
             if (response.tools_used && response.tools_used.length > 0) {
@@ -239,6 +420,86 @@ async function sendMessage() {
                 messagesDiv.appendChild(toolsDiv);
                 scrollToBottom();
             }
+            
+        } else if (currentMode === 'ops-agent') {
+            // Operations Agent mode
+            const showThinking = document.getElementById('show-thinking').checked;
+            
+            // Add to ops agent history
+            opsAgentHistory.push({ role: 'user', content });
+            saveOpsAgentHistory();
+            
+            // Pass last 10 messages as history
+            const historyToSend = opsAgentHistory.slice(-MAX_AGENT_HISTORY);
+            response = await OperationsAgentAPI.run(content, showThinking, historyToSend);
+            
+            removeLoadingMessage();
+            
+            // Show thinking steps first (if enabled)
+            if (showThinking && response.steps && response.steps.length > 0) {
+                addThinkingSteps(response.steps);
+            }
+            
+            // Show final answer
+            addAssistantMessage(response.answer);
+            
+            // Add assistant response to ops agent history
+            opsAgentHistory.push({ role: 'assistant', content: response.answer });
+            saveOpsAgentHistory();
+            
+            // Show tools used
+            if (response.tools_used && response.tools_used.length > 0) {
+                const messagesDiv = document.getElementById('messages');
+                const toolsDiv = document.createElement('div');
+                toolsDiv.className = 'flex justify-start message-fade-in pl-11';
+                toolsDiv.innerHTML = `
+                    <div class="text-xs text-gray-400">
+                        Tools used: ${response.tools_used.join(' → ')}
+                    </div>
+                `;
+                messagesDiv.appendChild(toolsDiv);
+                scrollToBottom();
+            }
+            
+        } else if (currentMode === 'multi-agent') {
+            // Multi-Agent mode
+            const showThinking = document.getElementById('show-thinking').checked;
+            
+            // Add to multi-agent history
+            multiAgentHistory.push({ role: 'user', content });
+            saveMultiAgentHistory();
+            
+            // Pass last 10 messages as history
+            const historyToSend = multiAgentHistory.slice(-MAX_AGENT_HISTORY);
+            response = await MultiAgentAPI.run(content, showThinking, historyToSend);
+            
+            removeLoadingMessage();
+            
+            // Show routing info
+            const messagesDiv = document.getElementById('messages');
+            const routingDiv = document.createElement('div');
+            routingDiv.className = 'flex justify-start message-fade-in pl-11';
+            routingDiv.innerHTML = `
+                <div class="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mb-2">
+                    <span class="font-semibold">Router:</span> Routed to <span class="text-blue-600 font-semibold">${response.target === 'service' ? 'Smart Agent' : 'Operations Agent'}</span> (confidence: ${(response.confidence * 100).toFixed(0)}%)<br>
+                    <span class="text-gray-500">${response.reason}</span>
+                </div>
+            `;
+            messagesDiv.appendChild(routingDiv);
+            
+            // Show thinking steps first (if enabled)
+            if (showThinking && response.thinking_process && response.thinking_process.length > 0) {
+                addThinkingSteps(response.thinking_process);
+            }
+            
+            // Show final answer
+            addAssistantMessage(response.answer);
+            
+            // Add assistant response to multi-agent history
+            multiAgentHistory.push({ role: 'assistant', content: response.answer });
+            saveMultiAgentHistory();
+            
+            scrollToBottom();
         }
         
     } catch (error) {
@@ -254,7 +515,7 @@ async function sendMessage() {
 
 // ============ Utility Functions ============
 
-function clearChat() {
+function clearChat(clearHistory = false) {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.innerHTML = `
         <div class="flex justify-center">
@@ -264,6 +525,21 @@ function clearChat() {
         </div>
     `;
     conversationHistory = [];
+    
+    // Only clear persistent history when clearHistory=true (user clicked "Clear Chat" button)
+    // When switching modes (clearHistory=false), we preserve history in localStorage
+    if (clearHistory) {
+        if (currentMode === 'agent') {
+            agentHistory = [];
+            clearAgentHistory();
+        } else if (currentMode === 'ops-agent') {
+            opsAgentHistory = [];
+            clearOpsAgentHistory();
+        } else if (currentMode === 'multi-agent') {
+            multiAgentHistory = [];
+            clearMultiAgentHistory();
+        }
+    }
 }
 
 function scrollToBottom() {
