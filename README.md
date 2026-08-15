@@ -374,3 +374,33 @@ it-service-assistant/
 - localStorage 的工作原理
 - 前端状态持久化的最佳实践
 - 如何将历史注入到 LLM Prompt 中
+
+---
+
+### 🆕 新增 4：Quality Check Agent + 循环工作流
+
+**背景：** 学习 LangGraph 的循环工作流，理解 Agent 自我修正机制
+
+**新增文件：**
+- `backend/app/services/quality_check_agent_service.py` - 质量检查 Agent 服务
+- `backend/app/utils/json_utils.py` - 共享的 JSON 提取工具函数
+
+**修改文件：**
+- `backend/app/services/multi_agent_graph.py` - 添加质量检查节点、循环边、重试逻辑
+- `backend/app/services/router_agent_service.py` - 提取重复的 `_extract_json` 为共享函数
+- `backend/app/api/multi_agent.py` - 返回质量检查结果
+- `frontend/js/chat.js` - 展示质量评分和重试次数
+
+**新增功能：**
+- Quality Check Agent：评估回答的相关性、完整性、清晰度、准确性
+- 循环工作流：Agent → Quality Check → (不通过) → 带反馈重新生成 → (最多重试 2 次)
+- 质量评分：0.0-1.0 分数 + 改进建议
+- 前端展示：质量评分、重试次数、改进反馈
+
+**学习要点：**
+- LangGraph 的循环边（Loop）实现
+- State 字段在循环中的读写语义
+- 防止无限循环的重试计数机制
+- 如何将质量反馈注入到 Agent 的重新生成 Prompt 中
+- 公共工具函数的提取和复用（DRY 原则）
+- f-string 中 JSON 示例的花括号转义（`{{` 和 `}}`）

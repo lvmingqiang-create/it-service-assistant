@@ -12,6 +12,7 @@ Design:
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.config import settings
+from app.utils.json_utils import extract_json
 import json
 
 
@@ -35,33 +36,8 @@ class RouterAgentService:
         )
 
     def _extract_json(self, text: str) -> str:
-        """
-        Extract JSON from LLM response.
-        
-        LLMs often wrap JSON in markdown code blocks or add extra text.
-        This method extracts the JSON object reliably.
-        """
-        # Remove markdown code blocks if present
-        if "```" in text:
-            # Try to find JSON between ``` markers
-            import re
-            match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-            if match:
-                return match.group(1)
-            # Fallback: find the first { and last }
-            start = text.find('{')
-            end = text.rfind('}')
-            if start != -1 and end != -1:
-                return text[start:end+1]
-        
-        # If no code blocks, try to find JSON object directly
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1:
-            return text[start:end+1]
-        
-        # Return original text as fallback
-        return text
+        """Delegate to shared utility."""
+        return extract_json(text)
 
     def route_question(self, question: str) -> dict:
         """

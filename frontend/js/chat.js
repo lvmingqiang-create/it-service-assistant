@@ -479,10 +479,29 @@ async function sendMessage() {
             const messagesDiv = document.getElementById('messages');
             const routingDiv = document.createElement('div');
             routingDiv.className = 'flex justify-start message-fade-in pl-11';
+            
+            // Build routing info
+            let routingHtml = `
+                <span class="font-semibold">Router:</span> Routed to <span class="text-blue-600 font-semibold">${response.target === 'service' ? 'Smart Agent' : 'Operations Agent'}</span> (confidence: ${(response.confidence * 100).toFixed(0)}%)<br>
+                <span class="text-gray-500">${response.reason}</span>
+            `;
+            
+            // Add quality check info if available
+            if (response.quality_score !== undefined && response.quality_score !== null) {
+                const qualityColor = response.quality_passed ? 'text-green-600' : 'text-red-600';
+                const qualityIcon = response.quality_passed ? '✅' : '⚠️';
+                routingHtml += `<br><span class="font-semibold">Quality Check:</span> <span class="${qualityColor}">${qualityIcon} Score: ${(response.quality_score * 100).toFixed(0)}%</span>`;
+                if (response.quality_retry_count > 0) {
+                    routingHtml += ` <span class="text-amber-600">(retried ${response.quality_retry_count} time${response.quality_retry_count > 1 ? 's' : ''})</span>`;
+                }
+                if (response.quality_feedback && !response.quality_passed) {
+                    routingHtml += `<br><span class="text-gray-500">Feedback: ${escapeHtml(response.quality_feedback)}</span>`;
+                }
+            }
+            
             routingDiv.innerHTML = `
                 <div class="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2 mb-2">
-                    <span class="font-semibold">Router:</span> Routed to <span class="text-blue-600 font-semibold">${response.target === 'service' ? 'Smart Agent' : 'Operations Agent'}</span> (confidence: ${(response.confidence * 100).toFixed(0)}%)<br>
-                    <span class="text-gray-500">${response.reason}</span>
+                    ${routingHtml}
                 </div>
             `;
             messagesDiv.appendChild(routingDiv);
